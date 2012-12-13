@@ -1,5 +1,9 @@
 #!/usr/bin/env roseus
 
+;;; In order to run tabletop objects recognition
+;; ssh pr1012
+;; roslauch roseus_tutorials tabletop-object-detector.launch convert_to_base_link:=true run_rviz:=false
+
 (load "zemi.l")
 (defun l nil
   (load "tabletop-object-ik.l"))
@@ -110,58 +114,15 @@
 ;; Pick 
 (defun pick (pos &key (arm :larm))
   (let ((tmp-pos (send pos :copy-worldcoords))
-	(use-torso t))
+	;;(use-torso t)
+	)
     (format t  "Start Pick: ~a~%" pos)
-    (loop
-       (print "start loop")
-       (send *ri* :stop-grasp arm)
-       (send *pr2* :inverse-kinematics 
-	     (progn
-	       (send tmp-pos :rotate  (deg2rad 90) :y)
-	       (send tmp-pos :translate #f(-10 0 0)))
-	     :rotation-axis :x  ;; 
-	     :move-target (send *pr2* arm :end-coords)
-	     :link-list (send *pr2* :link-list
-			      (send *pr2* arm :end-coords :parent)
-			      (send *pr2* :torso_lift_link))
-;			      (if use-torso 
-				  ;(send *pr2* :l_shoulder_pan_link)))
-	     :debug-view t)
-       (setq use-torso nil)
-       (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
-       (send *ri* :wait-interpolation)
-       (unix::usleep 100000)
-       (send *pr2* :inverse-kinematics 
-	     (progn
-	       (send tmp-pos :translate #f(10 0 0)))
-	     :rotation-axis :x  ;; 
-	     :move-target (send *pr2* arm :end-coords)
-	     :link-list (send *pr2* :link-list
-			      (send *pr2* arm :end-coords :parent)
-			      (send *pr2* :torso_lift_link))
-	     :debug-view t)
-       
-       (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
-       (send *ri* :wait-interpolation)
-       (unix::usleep 100000)
-       (send *ri* :move-gripper arm 0.0 :effort 100 :wait t)
-       (unix::sleep 100000)
-       (print "Done")
-       (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
-       ;;(send *ri* :start-grasp arm)
-       (print "End loop")
-       (if (< (send *pr2* arm :gripper :joint-angle) 10)
-	   (return)))
-    (print "End Pick!"))
-  )
-
-;; Place
-(defun place (pos &key (arm :larm))
-  (let ((tmp-pos (send pos :copy-worldcoords)))
-    (format t  "Start Place: ~a~%" pos)
+    (send *ri* :stop-grasp arm)
     (send *pr2* :inverse-kinematics 
-	  tmp-pos
-	  :rotation-axis nil  ;; 
+	  (progn
+	    (send tmp-pos :rotate  (deg2rad 90) :y)
+	    (send tmp-pos :translate #f(-10 0 0)))
+	  :rotation-axis :x  ;; 
 	  :move-target (send *pr2* arm :end-coords)
 	  :link-list (send *pr2* :link-list
 			   (send *pr2* arm :end-coords :parent)
@@ -170,7 +131,83 @@
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
     (unix::usleep 100000)
+    (send *pr2* :torso :waist-z
+	  :joint-angle (- (send *pr2* :torso :waist-z :joint-angle) 20))
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+    (send *ri* :wait-interpolation)
+    (unix::usleep 100000)
+    (send *ri* :move-gripper arm 0.0 :effort 100 :wait t)
+    (print "End Pick!"))
+  )
+
+(defun go-home (pos &key (arm :rarm))
+  (let ((tmp-pos (send pos :copy-worldcoords)))
+    (format t  "Start Go Home: ~a~%" pos)
+    (send *pr2* :inverse-kinematics 
+	  (progn
+	    (send tmp-pos :translate #f(-130 -130 0)))
+	  :rotation-axis t ;; 
+	  :move-target (send *pr2* arm :end-coords)
+	  :link-list (send *pr2* :link-list
+			   (send *pr2* arm :end-coords :parent)
+			   (send *pr2* :torso_lift_link))
+	  :debug-view t)
+;    (send *pr2* arm :wrist-r :angle-vector 90)
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+    (send *ri* :wait-interpolation)
+    (unix::usleep 100000)
+    (send *pr2* :torso :waist-z :joint-angle
+	  (- (send *pr2* :torso :waist-z :joint-angle ) 40))
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+    (send *ri* :wait-interpolation)
+    (unix::usleep 100000)
+
+    (print "End Go Home!"))
+  )
+
+
+
+(defun my-test nil
+  (pick (elt *pos* 1))
+  (read-char)
+  (place (elt *pos* 0) :height -60)
+  (read-char)
+  (pick (elt *pos* 2))
+  (read-char)
+  (place (elt *pos* 0) :height -90)
+  (read-char)
+  (pick (elt *pos* 3))
+  (read-char)
+  (place (elt *pos* 0) :height -130))
+;; Place
+(defun place (pos &key (arm :larm) (height -50))
+  (let ((tmp-pos (send pos :copy-worldcoords)))
+    (format t  "Start Place: ~a~%" pos)
+    (send *pr2* :inverse-kinematics 
+	  (progn 
+	    (send tmp-pos :rotate (deg2rad 90) :y)
+	    (send tmp-pos :translate (float-vector height 0.0 0.0)))
+	  :rotation-axis :x  ;; 
+	  :move-target (send *pr2* arm :end-coords)
+	  :link-list (send *pr2* :link-list
+			   (send *pr2* arm :end-coords :parent)
+			   (send *pr2* :torso_lift_link))
+	  :debug-view t)
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+    (send *ri* :wait-interpolation)
+    (unix::usleep 100000)
+    (send *pr2* :torso :waist-z
+     	  :joint-angle (- (send *pr2* :torso :waist-z :joint-angle) 30))
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+    (send *ri* :wait-interpolation)
+    (unix::usleep 100000)
     (send *ri* :stop-grasp)
+        (send *pr2* :torso :waist-z
+	  :joint-angle (- (send *pr2* :torso :waist-z :joint-angle) -50))
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+    (send *ri* :wait-interpolation)
+    (unix::usleep 100000)
+
     (print "End Place!"))
   )
 
@@ -215,10 +252,10 @@
 			 (send *pr2* arm :end-coords :parent)
 			 (send *pr2* :torso_lift_link))
 	:debug-view t)
-					;(send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
-					;(send *ri* :wait-interpolation)
-					;(send *ri* :start-grasp arm)
-
+  ;;(send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+  ;;(send *ri* :wait-interpolation)
+  ;;(send *ri* :start-grasp arm)
+  
   (send *pr2* :inverse-kinematics
 	c2
 	;;(send c2 :rotate (deg2rad 180) :z)
@@ -229,32 +266,27 @@
 			 (send *pr2* arm :end-coords :parent)
 			 (send *pr2* :torso_lift_link))
 	:debug-view t)
-					;(send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
-					;(send *ri* :wait-interpolation)
+  ;;(send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+  ;;(send *ri* :wait-interpolation)
   
-					;(send *ri* :stop-grasp arm)
+  ;;(send *ri* :stop-grasp arm)
   (print "5"))
 |# 
 
 ;; 
 ;; callback
-(setq *flag* t)
-(setq *pos* t)
+(setq *pos* nil)
 (defun test nil
-  (setq c (tf-object-update))
+  (setq *pos* (tf-object-update))
   (ros::spin-once)
   (send *irtviewer* :draw-objects)
-  (when c
-    (send-all c :draw-on :flush t))
-  (when (and *flag* (>= (length c) 1))
+  (when *pos*
+    (send-all *pos* :draw-on :flush t)
     (print "LALA")
-    (sort c #'(lambda (x y) (< (elt (send x :pos ) 0) 
-			       (elt (send y :pos ) 0))))
-    (setq *pos* c)
-    (dolist (el c)
-      (print el))
-    (setf *flag* nil))
-  (print "4")
+    (sort *pos* #'(lambda (x y) (< (elt (send x :pos ) 2) 
+			       (elt (send y :pos ) 2))))
+    (dolist (el *pos*)
+      (print el)))
   (x::window-main-one)
   (ros::sleep)
   )
