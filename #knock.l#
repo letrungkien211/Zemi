@@ -81,8 +81,6 @@
   (send *ri* :wait-interpolation))
 
 (defun pr2-test nil
-  (dotimes (i 10)
-    (test))
   (knock-one)
   (unix::sleep 1)
   (knock-one)

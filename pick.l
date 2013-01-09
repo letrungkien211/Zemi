@@ -107,36 +107,10 @@
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
     (unix::usleep 100000)
-    (send *ri* :move-gripper arm 0.0 :effort 100 :wait t)
+    (send *ri* :start-grasp)
+    ;;(send *ri* :move-gripper arm 0.0 :effort 100 :wait t)
     (print "End Pick!"))
   )
-
-#|
-(defun go-home (pos &key (arm :rarm))
-  (let ((tmp-pos (send pos :copy-worldcoords)))
-    (format t  "Start Go Home: ~a~%" pos)
-    (send *pr2* :inverse-kinematics 
-	  (progn
-	    (send tmp-pos :translate #f(-130 -130 0)))
-	  :rotation-axis t ;; 
-	  :move-target (send *pr2* arm :end-coords)
-	  :link-list (send *pr2* :link-list
-			   (send *pr2* arm :end-coords :parent)
-			   (send *pr2* :torso_lift_link))
-	  :debug-view t)
-    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
-    (send *ri* :wait-interpolation)
-    (unix::usleep 100000)
-    (send *pr2* :torso :waist-z :joint-angle
-	  (- (send *pr2* :torso :waist-z :joint-angle ) 40))
-    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
-    (send *ri* :wait-interpolation)
-    (unix::usleep 100000)
-
-    (print "End Go Home!"))
-  )
-|#
-
 
 (defun place (pos &key (arm :larm) (height -50))
   (let ((tmp-pos (send pos :copy-worldcoords)))
@@ -154,41 +128,38 @@
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
     (unix::usleep 100000)
+    
     (send *pr2* :torso :waist-z
      	  :joint-angle (- (send *pr2* :torso :waist-z :joint-angle) 30))
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
     (unix::usleep 100000)
+
     (send *ri* :stop-grasp)
-        (send *pr2* :torso :waist-z
+    
+    (send *pr2* :torso :waist-z
 	  :joint-angle (- (send *pr2* :torso :waist-z :joint-angle) -50))
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
     (unix::usleep 100000)
     (print "End Place!"))
   )
-;; Pick and place
-(defun pick-place (pick-pos place-pos &key (arm :larm))
-  (pick pick-pos)
-  (unix::sleep 100000)
-  (place place-pos))
-
 
 (defun my-test nil
   (pick (elt *pos* 1))
+  (unix::sleep 1)
   (read-char)
   (place (elt *pos* 0) :height -80)
+  (unix::sleep 1)
   (read-char)
   (pick (elt *pos* 2))
-  (read-char)
+  (unix::sleep 1)
   (place (elt *pos* 0) :height -100)
-  (read-char)
+  (unix::sleep 1)
   (pick (elt *pos* 3))
-  (read-char)
+  (unix::sleep 1)
   (place (elt *pos* 0) :height -150))
-;; Place
-
-
+;#<cascaded-coords #X883b1d0 /base_footprint  600.907 38.501 753.967 / 0.001 -0.036 -0.02>
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
 ;; callback
@@ -199,9 +170,12 @@
   (send *irtviewer* :draw-objects)
   (when *pos*
     (send-all *pos* :draw-on :flush t)
-    (print "LALA")
+    (print "Raw")
+    (dolist (el *pos*)
+      (print el)))
     (sort *pos* #'(lambda (x y) (< (elt (send x :pos ) 2) 
 			       (elt (send y :pos ) 2))))
+    (print "Sorted")
     (dolist (el *pos*)
       (print el)))
   (x::window-main-one)
@@ -214,3 +188,9 @@
 ;;  (test))
 
 ;;(test)
+
+
+;"Sorted"
+;#<cascaded-coords #X8661330 /base_footprint  555.751 244.295 750.285 / 0.001 -0.034 -0.018>
+;#<cascaded-coords #X85597e8 /base_footprint  621.609 52.756 753.352 / 0.001 -0.034 -0.018>
+;nil
