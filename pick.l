@@ -90,7 +90,7 @@
     (send *pr2* :inverse-kinematics 
 	  (progn
 	    (send tmp-pos :rotate  (deg2rad 90) :y) ;; alignment
-	    (send tmp-pos :translate #f(-20 0 0)))  ;; avoid collision
+	    (send tmp-pos :translate #f(-25 0 0)))  ;; avoid collision
 	  :rotation-axis :x  ;; 
 	  :move-target (send *pr2* arm :end-coords)
 	  :link-list (send *pr2* :link-list
