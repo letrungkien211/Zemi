@@ -16,7 +16,7 @@
 (load "package://pr2eus_openrave/pr2eus-openrave.l")
 
 ;;;
-;;; Pr2 model 
+;;; Pr2 model
 (if (not (boundp '*irtviewer*)) (make-irtviewer))
 (if (not (boundp '*pr2*)) (pr2))
 (setq *ri* (instance pr2-interface :init))
@@ -26,10 +26,10 @@
 (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
 
 ;; Initial position
-(defun init  nil 
+(defun init  nil
   (send *pr2* :reset-pose)
   (send *pr2* :arms :shoulder-p :joint-angle -20)
-  (send *pr2* :head :neck-p :joint-angle 40)
+  (send *pr2* :head :neck-p :joint-angle 60)
   (send *pr2* :arms :wrist-r :joint-angle 90)
   (send *pr2* :torso :waist-z :joint-angle 110)
   (send *pr2* :larm :collar-y :joint-angle 90)
@@ -42,7 +42,7 @@
 ;;; Client node definition
 (ros::roseus "tabletop_objectdetection_client")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; 
+;;;
 ;;; Use for object dectect
 (setq *tfb* (instance ros::transform-broadcaster :init))
 (setq *tfl* (instance ros::transform-listener :init))
@@ -145,6 +145,7 @@
     (print "End Place!"))
   )
 
+(setq *pos* nil)
 (defun my-test nil
   (pick (elt *pos* 1))
   (unix::sleep 1)
@@ -163,13 +164,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
 ;; callback
-(setq *pos* nil)
+
 (defun test nil
   (setq *pos* (tf-object-update))
   (ros::spin-once)
-  (send *irtviewer* :draw-objects)
+  (if (boundp '*irtviewer*) (send *irtviewer* :draw-objects))
   (when *pos*
-    (send-all *pos* :draw-on :flush t)
+    (if (boundp '*irtviewer*) (send-all *pos* :draw-on :flush t))
     (print "Raw")
     (dolist (el *pos*)
       (print el)))
@@ -178,7 +179,7 @@
     (print "Sorted")
     (dolist (el *pos*)
       (print el)))
-  (x::window-main-one)
+;  (x::window-main-one)
   (ros::sleep)
   )
 ;;
