@@ -146,7 +146,7 @@
   )
 
 (setq *pos* nil)
-(defun my-test nil
+(defun pr2-pick nil
   (pick (elt *pos* 1))
   (unix::sleep 1)
   (read-char)
@@ -165,7 +165,7 @@
 ;; 
 ;; callback
 
-(defun test nil
+(defun get-pos nil
   (setq *pos* (tf-object-update))
   (ros::spin-once)
   (if (boundp '*irtviewer*) (send *irtviewer* :draw-objects))

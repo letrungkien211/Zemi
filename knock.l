@@ -80,7 +80,7 @@
   (send *ri* :angle-vector (send *pr2* :angle-vector) 0)
   (send *ri* :wait-interpolation))
 
-(defun pr2-test nil
+(defun pr2-knock nil
   (knock-one)
   (unix::sleep 1)
   (knock-one)
